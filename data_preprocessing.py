@@ -182,6 +182,61 @@ def save_processed(
     logger.info(f"Processed data saved to {path}")
 
 
+# ------------------ SPECIFICHE AMAZON ------------------
+def raggruppa_status(status):
+    if status in ['Shipped', 'Shipped - Delivered to Buyer']:
+        return 'Completati'
+    elif status in ['Cancelled', 'Shipped - Rejected by Buyer', 'Shipping']:
+        return 'Annullati'
+    elif status in ['Shipped - Picked Up', 'Shipped - Out for Delivery', 'Pending', 'Pending - Waiting for Pick Up']:
+        return 'In transito'
+    elif status in ['Shipped - Returned to Seller', 'Shipped - Returning to Seller']:
+        return 'Resi'
+    elif status in ['Shipped - Lost in Transit', 'Shipped - Damaged']:
+        return 'Eccezioni'
+    else:
+        return 'Altro'
+
+def raggruppa_categoria(cat):
+    if cat in ['Set', 'kurta']:
+        return 'Kurta / Set'
+    elif cat in ['Western Dress', 'Top']:
+        return 'Western Wear'
+    elif cat in ['Saree', 'Dupatta', 'Ethnic Dress', 'Blouse', 'Bottom']:
+        return 'Traditional Wear'
+    else:
+        return 'Altro'
+
+def pulisci_e_raggruppa_ship_state(df):
+    df['ship-state'] = df['ship-state'].astype(str).str.strip().str.lower()
+    correzioni = {
+        'rajsthan': 'rajasthan', 'rajshthan': 'rajasthan', 'orissa': 'odisha',
+        'pondicherry': 'puducherry', 'new delhi': 'delhi', 'punjab/mohali/zirakpur': 'punjab',
+        'goa ': 'goa', 'nl': 'nagaland', 'apo': 'unknown', 'pb': 'punjab', 'rj': 'rajasthan',
+        'ar': 'arunachal pradesh', 'bihar ': 'bihar', 'sikkim ': 'sikkim', 'mizoram ': 'mizoram',
+        'manipur ': 'manipur', 'nagaland ': 'nagaland', 'arunachal pradesh ': 'arunachal pradesh',
+        'dadra and nagar': 'dadra and nagar haveli', 'daman and diu': 'dadra and nagar haveli',
+        'delhi': 'delhi', 'puducherry': 'puducherry'
+    }
+    df['ship-state'] = df['ship-state'].replace(correzioni)
+    df['ship-state'] = df['ship-state'].str.title()
+
+    region_map = {
+        'Delhi': 'North', 'Punjab': 'North', 'Haryana': 'North', 'Uttarakhand': 'North',
+        'Himachal Pradesh': 'North', 'Jammu & Kashmir': 'North', 'Chandigarh': 'North', 'Ladakh': 'North',
+        'Karnataka': 'South', 'Tamil Nadu': 'South', 'Kerala': 'South', 'Andhra Pradesh': 'South',
+        'Telangana': 'South', 'Puducherry': 'South', 'Maharashtra': 'West', 'Gujarat': 'West',
+        'Goa': 'West', 'Rajasthan': 'West', 'Dadra And Nagar Haveli': 'West', 'West Bengal': 'East',
+        'Odisha': 'East', 'Bihar': 'East', 'Jharkhand': 'East', 'Madhya Pradesh': 'Central',
+        'Chhattisgarh': 'Central', 'Assam': 'North-East', 'Manipur': 'North-East',
+        'Meghalaya': 'North-East', 'Nagaland': 'North-East', 'Mizoram': 'North-East',
+        'Tripura': 'North-East', 'Sikkim': 'North-East', 'Arunachal Pradesh': 'North-East',
+        'Andaman & Nicobar': 'Islands', 'Lakshadweep': 'Islands', 'Unknown': 'Unknown'
+    }
+    df['ship-region'] = df['ship-state'].map(region_map).fillna('Unknown')
+    return df
+
+
 if __name__ == '__main__':
     import argparse
 
