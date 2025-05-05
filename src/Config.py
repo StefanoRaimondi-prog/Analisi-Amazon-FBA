@@ -8,7 +8,7 @@ data_dir = os.path.join(BASE_DIR, 'data')
 raw_data_dir = os.path.join(data_dir, 'raw')
 processed_data_dir = os.path.join(data_dir, 'processed')
 
-RAW_DATA_PATH = os.path.join(raw_data_dir, 'Amazon Sale Report.csv')
+RAW_DATA_PATH = os.path.join(raw_data_dir, 'AmazonSaleReport.csv')
 CLEANED_DATA_PATH = os.path.join(processed_data_dir, 'cleaned.csv')
 TOP_N_PRODUCTS_PATH = os.path.join(processed_data_dir, 'top_n_products.csv')
 SUMMARY_STATS_PATH = os.path.join(processed_data_dir, 'summary_stats.csv')
