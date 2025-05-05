@@ -8,9 +8,6 @@ def clean_data(amazon):
     print("=== Inizio pulizia dati ===")
     print("--------------------------------------------------------------------------")
     
-    # Eliminazione colonne inutili
-    amazon.drop(columns=['Unnamed: 22', 'fulfilled-by', 'ship-country', 'currency'], inplace=True)
-    
     # Rimozione duplicati
     before = len(amazon)
     amazon.drop_duplicates(inplace=True)
@@ -26,12 +23,13 @@ def clean_data(amazon):
         print(amazon[amazon.isnull().any(axis=1)].head())
     print("--------------------------------------------------------------------------")
     
-    amazon['promotion-ids'].fillna('no promotion', inplace=True)
-    amazon['Courier Status'].fillna('unknown', inplace=True)
-    amazon['Amount'].fillna(0, inplace=True)
-    amazon['ship-city'].fillna('unknown', inplace=True)
-    amazon['ship-state'].fillna('unknown', inplace=True)
-    amazon['ship-postal-code'].fillna('unknown', inplace=True)
+    amazon['promotion-ids'] = amazon['promotion-ids'].fillna('no promotion')
+    amazon['Courier Status'] = amazon['Courier Status'].fillna('unknown')
+    amazon['ship-city'] = amazon['ship-city'].fillna('unknown')
+    amazon['ship-state'] = amazon['ship-state'].fillna('unknown')
+    amazon['ship-postal-code'] = amazon['ship-postal-code'].fillna('unknown')
+    amazon['B2B'] = amazon['B2B'].replace([True, False], ['business', 'consumer'])
+
     
     # Rinomina colonne
     mapper = {
@@ -47,9 +45,6 @@ def clean_data(amazon):
     print("Colonne rinominate con successo:")
     print(amazon.columns.tolist())
     print("--------------------------------------------------------------------------")
-    
-    amazon['customerType'].replace([True, False], ['business', 'consumer'], inplace=True)
-
     print("Pulizia completata.")
     print("--------------------------------------------------------------------------")
     return amazon
@@ -72,9 +67,10 @@ def visualize_unique_value(amazon):
 
 # === Funzione per convertire date e creare colonna 'month' ===
 def process_dates(amazon):
-    amazon['date'] = pd.to_datetime(amazon['date'])
+    amazon['date'] = pd.to_datetime(amazon['date'], format='%m-%d-%y', errors='coerce')
     amazon['month'] = amazon['date'].dt.month
-    amazon['month'].replace([3, 4, 5, 6], ['March', 'April', 'May', 'June'], inplace=True)
+    amazon['month'] = amazon['month'].replace([3, 4, 5, 6], ['March', 'April', 'May', 'June'])
+
     print(f"Intervallo date: {amazon['date'].min().date()} - {amazon['date'].max().date()}")
     print("--------------------------------------------------------------------------")
     return amazon
@@ -82,7 +78,8 @@ def process_dates(amazon):
 # === MAIN ===
 def main():
     # Caricamento dati
-    amazon = pd.read_csv("C:/Users/filip/Documents/Analisi-Amazon-FBA/Amazon Sale Report.csv")
+    amazon = pd.read_csv("C:/Users/filip/Documents/Analisi-Amazon-FBA/Amazon Sale Report.csv", low_memory=False).iloc[:, :-1]  # rimuove l’ultima colonna
+
     amazon.set_index('index', inplace=True)
 
     print("Righe con dati mancanti prima della pulizia:")
@@ -109,3 +106,16 @@ def main():
 
 # Avvia il flusso principale
 amazon = main()
+
+# Verifica i tipi di dati prima della modifica
+print(amazon.dtypes)
+
+# Gestisci i tipi misti in 'currency', 'zip', 'ship-country', 'fulfilled-by'
+amazon['currency'] = amazon['currency'].fillna('unknown').astype(str)
+amazon['zip'] = amazon['zip'].fillna('unknown').astype(str)
+amazon['ship-country'] = amazon['ship-country'].fillna('unknown').astype(str)
+amazon['fulfilled-by'] = amazon['fulfilled-by'].fillna('unknown').astype(str)
+
+# Verifica i tipi di dati dopo la modifica
+print(amazon.dtypes)
+
