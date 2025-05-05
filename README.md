@@ -13,45 +13,55 @@ Una **pipeline end-to-end** per l’analisi dei dati di vendita provenienti da A
 ---
 
 ## 📦 Panoramica della struttura
-
-```
-Analisi-Amazon-FBA/
-├── config/                    # File di configurazione e mapping
-│   └── region_mapping.csv     # Mappatura ship-country → regione
+ │   Amazon Sale Report.csv
+│   IntegrationFil.py
+│   Pipeline.py
+│   README.md
+│   Requirement.txt
 │
-├── data/
-│   ├── raw/                   # Dati originali
-│   │   └── AmazonSaleReport.csv
-│   └── processed/             # Output del preprocessing
-│       ├── cleaned.csv
-│       ├── top_n_products.csv
-│       ├── summary_stats.csv
-│       ├── long_tail_analysis.csv
-│       └── region_popularity.csv
+├───.vscode
+│       settings.json
 │
-├── reports/
-│   └── plots/                 # Grafici generati
-│       ├── trend/
-│       │   ├── monthly_qty_trend.png
-│       │   └── heatmap_top5_asin.png
-│       └── ...
+├───config
+│       region_mapping.csv
 │
-├── src/                       # Codice sorgente
-│   ├── __init__.py
-│   ├── config.py              # Costanti, percorsi, parametri
-│   ├── preprocessing.py       # Pulizia dati, drop duplicates, rename, missing
-│   ├── popularity.py          # Top‑N prodotti per quantità/fatturato
-│   ├── statistics.py          # Statistiche descrittive e long‑tail
-│   ├── trend.py               # Aggregazione e grafici temporali
-│   ├── geography.py           # Mapping geo → regioni, popolarità geografica
-│   └── visualization.py       # Funzioni per bar, line e heatmap
+├───data
+│   ├───processed
+│   │       cleaned.csv
+│   │       long_tail_analysis.csv
+│   │       region_popularity.csv
+│   │       summary_stats.csv
+│   │       top_n_products.csv
+│   │
+│   └───raw
+│       │   AmazonSaleReport.csv
+│       │
+│       └───processed
+├───reports
+│   └───plots
+│       └───trend
+│               heatmap_top5_asin.png
+│               monthly_qty_trend.png
 │
-├── pipeline.py                # Esecuzione batch di tutte le fasi
-├── interactive_pipeline.py    # CLI interattiva per singole fasi
-├── requirements.txt           # Dipendenze Python minime
-└── README.md                  # Documentazione di progetto
-```
-
+└───src
+    │   Config.py
+    │   Geography.py
+    │   Modeling.py
+    │   Popularity.py
+    │   Preprocessing.py
+    │   Statistic.py
+    │   Trend.py
+    │   Visualization.py
+    │   __init__.py
+    │
+    └───__pycache__
+            Config.cpython-313.pyc
+            Geography.cpython-313.pyc
+            Popularity.cpython-313.pyc
+            Preprocessing.cpython-313.pyc
+            Statistic.cpython-313.pyc
+            Trend.cpython-313.pyc
+            Visualization.cpython-313.pyc
 ---
 
 ## 🎯 Obiettivi del progetto
