@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Dict, Optional
 
-# Configure logging
+# Configura il logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 if not logger.handlers:
@@ -15,21 +15,21 @@ if not logger.handlers:
 
 def define_regions(mapping: Dict[str, str]) -> Dict[str, str]:
     """
-    Validate and return a country-to-region mapping.
+    Valida e restituisce una mappatura paese-regione.
 
-    Args:
-        mapping: Dict where keys are country codes/names and values are region names.
+    Argomenti:
+        mapping: Dizionario dove le chiavi sono codici/nomi di paesi e i valori sono nomi di regioni.
 
-    Returns:
-        The validated mapping dictionary.
+    Restituisce:
+        Il dizionario di mappatura validato.
 
-    Raises:
-        ValueError: If mapping is empty.
+    Solleva:
+        ValueError: Se la mappatura è vuota.
     """
     if not mapping:
-        logger.error("Empty mapping provided to define_regions.")
-        raise ValueError("Region mapping cannot be empty.")
-    logger.info(f"Defined {len(mapping)} region mappings.")
+        logger.error("Mappatura vuota fornita a define_regions.")
+        raise ValueError("La mappatura delle regioni non può essere vuota.")
+    logger.info(f"Definite {len(mapping)} mappature di regioni.")
     return mapping
 
 
@@ -40,28 +40,28 @@ def map_to_region(
     default_region: Optional[str] = 'Unknown'
 ) -> pd.DataFrame:
     """
-    Map geographic column values to regions.
+    Mappa i valori di una colonna geografica alle regioni.
 
-    Args:
-        df: Input DataFrame with geographic information.
-        geo_col: Column name containing country or state.
-        mapping: Dict for mapping values in geo_col to region names.
-        default_region: Name to assign if no mapping found.
+    Argomenti:
+        df: DataFrame di input con informazioni geografiche.
+        geo_col: Nome della colonna contenente paese o stato.
+        mapping: Dizionario per mappare i valori in geo_col ai nomi delle regioni.
+        default_region: Nome da assegnare se non viene trovata alcuna mappatura.
 
-    Returns:
-        DataFrame with new column 'region'.
+    Restituisce:
+        DataFrame con una nuova colonna 'region'.
 
-    Raises:
-        ValueError: If geo_col not in df.
+    Solleva:
+        ValueError: Se geo_col non è presente nel DataFrame.
     """
     if geo_col not in df.columns:
-        logger.error(f"Geo column '{geo_col}' not found.")
-        raise ValueError(f"Column '{geo_col}' not found in DataFrame.")
+        logger.error(f"Colonna geografica '{geo_col}' non trovata.")
+        raise ValueError(f"Colonna '{geo_col}' non trovata nel DataFrame.")
 
     df = df.copy()
     df['region'] = df[geo_col].map(mapping).fillna(default_region)
     n_unmapped = (df['region'] == default_region).sum()
-    logger.info(f"Mapped geo column '{geo_col}' to regions. Unmapped entries: {n_unmapped}")
+    logger.info(f"Mappata la colonna geografica '{geo_col}' alle regioni. Voci non mappate: {n_unmapped}")
     return df
 
 
@@ -72,42 +72,42 @@ def popularity_by_region(
     metric: str = 'Qty'
 ) -> pd.DataFrame:
     """
-    Compute popularity metric aggregated by region and product.
+    Calcola il metric di popolarità aggregato per regione e prodotto.
 
-    Args:
-        df: DataFrame with 'region' column and sales metrics.
-        region_col: Column name for region.
-        product_col: Column name for product identifier.
-        metric: Numeric column name to aggregate (e.g., 'Qty' or 'Amount').
+    Argomenti:
+        df: DataFrame con colonna 'region' e metriche di vendita.
+        region_col: Nome della colonna per la regione.
+        product_col: Nome della colonna per l'identificativo del prodotto.
+        metric: Nome della colonna numerica da aggregare (es. 'Qty' o 'Amount').
 
-    Returns:
-        DataFrame with columns [region_col, product_col, 'metric', 'popularity'],
-        sorted by region and descending popularity.
+    Restituisce:
+        DataFrame con colonne [region_col, product_col, 'metric', 'popularity'],
+        ordinato per regione e popolarità decrescente.
 
-    Raises:
-        ValueError: If required columns missing or metric not numeric.
+    Solleva:
+        ValueError: Se mancano colonne richieste o se metric non è numerico.
     """
-    # Validate columns
+    # Valida le colonne
     required = [region_col, product_col, metric]
     missing = [col for col in required if col not in df.columns]
     if missing:
-        logger.error(f"Missing columns for popularity_by_region: {missing}")
-        raise ValueError(f"Columns missing: {missing}")
+        logger.error(f"Colonne mancanti per popularity_by_region: {missing}")
+        raise ValueError(f"Colonne mancanti: {missing}")
 
     if not pd.api.types.is_numeric_dtype(df[metric]):
-        logger.error(f"Metric column '{metric}' is not numeric.")
-        raise ValueError(f"Metric column '{metric}' must be numeric.")
+        logger.error(f"La colonna metric '{metric}' non è numerica.")
+        raise ValueError(f"La colonna metric '{metric}' deve essere numerica.")
 
-    # Group and aggregate
+    # Raggruppa e aggrega
     agg_df = (
         df.groupby([region_col, product_col])[metric]
         .sum()
         .reset_index(name='popularity')
     )
 
-    # Sort within each region
+    # Ordina all'interno di ogni regione
     agg_df = agg_df.sort_values([region_col, 'popularity'], ascending=[True, False])
-    logger.info(f"Computed popularity by region for {agg_df[product_col].nunique()} products across {agg_df[region_col].nunique()} regions.")
+    logger.info(f"Calcolata la popolarità per regione per {agg_df[product_col].nunique()} prodotti in {agg_df[region_col].nunique()} regioni.")
     return agg_df
 
 
@@ -117,32 +117,32 @@ def save_region_popularity(
     path: str
 ) -> None:
     """
-    Save the regional popularity DataFrame to CSV.
+    Salva il DataFrame di popolarità regionale in un file CSV.
 
-    Args:
-        df: Original DataFrame (unused, for CLI consistency).
-        region_pop_df: DataFrame from popularity_by_region.
-        path: Output file path.
+    Argomenti:
+        df: DataFrame originale (non utilizzato, per coerenza CLI).
+        region_pop_df: DataFrame da popularity_by_region.
+        path: Percorso del file di output.
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     region_pop_df.to_csv(path, index=False)
-    logger.info(f"Saved regional popularity to {path}")
+    logger.info(f"Popolarità regionale salvata in {path}")
 
 
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(description='Map to regions and compute popularity by region.')
-    parser.add_argument('input', help='Path to preprocessed CSV file')
-    parser.add_argument('--geo_col', default='ship-country', help='Geographic column to map')
-    parser.add_argument('--mapping_file', help='Path to CSV with two columns: geo_value, region_name')
-    parser.add_argument('--metric', default='Qty', help='Metric column to aggregate')
-    parser.add_argument('--product_col', default='ASIN', help='Product column to group by')
-    parser.add_argument('--output', help='Path for saving regional popularity CSV')
+    parser = argparse.ArgumentParser(description='Mappa alle regioni e calcola la popolarità per regione.')
+    parser.add_argument('input', help='Percorso al file CSV preprocessato')
+    parser.add_argument('--geo_col', default='ship-country', help='Colonna geografica da mappare')
+    parser.add_argument('--mapping_file', help='Percorso al CSV con due colonne: geo_value, region_name')
+    parser.add_argument('--metric', default='Qty', help='Colonna metric da aggregare')
+    parser.add_argument('--product_col', default='ASIN', help='Colonna prodotto per il raggruppamento')
+    parser.add_argument('--output', help='Percorso per salvare il CSV di popolarità regionale')
     args = parser.parse_args()
 
     df = pd.read_csv(args.input)
-    # Load mapping
+    # Carica la mappatura
     mapping = {}
     if args.mapping_file:
         map_df = pd.read_csv(args.mapping_file)
@@ -154,4 +154,4 @@ if __name__ == '__main__':
         save_region_popularity(df, region_pop, args.output)
     else:
         print(region_pop.head())
-    logger.info("Geographical analysis complete.")
+    logger.info("Analisi geografica completata.")

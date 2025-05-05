@@ -4,7 +4,7 @@ import logging
 import os
 from typing import List, Optional
 
-# Configure logging
+# Configurazione del logging per tracciare eventi e messaggi
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 if not logger.handlers:
@@ -22,55 +22,56 @@ def aggregate_time(
     groupby_col: Optional[str] = None
 ) -> pd.DataFrame:
     """
-    Aggregate sales data over time with optional grouping.
+    Aggrega i dati di vendita nel tempo con un'opzione di raggruppamento.
 
     Args:
-        df: Preprocessed DataFrame with sales data.
-        date_col: Name of datetime column.
-        freq: Resampling frequency (e.g., 'D', 'W', 'M').
-        metrics: List of numeric columns to aggregate (default all numeric).
-        groupby_col: Optional column to further group by (e.g., 'ASIN').
+        df: DataFrame pre-elaborato con i dati di vendita.
+        date_col: Nome della colonna contenente le date.
+        freq: Frequenza di campionamento (es. 'D', 'W', 'M').
+        metrics: Lista di colonne numeriche da aggregare (default: tutte le colonne numeriche).
+        groupby_col: Colonna opzionale per ulteriori raggruppamenti (es. 'ASIN').
 
     Returns:
-        DataFrame with aggregated metrics. If groupby_col=None, columns: [date_col] + metrics.
-        If groupby_col provided, columns: [date_col, groupby_col] + metrics.
+        DataFrame con le metriche aggregate. Se groupby_col=None, colonne: [date_col] + metrics.
+        Se groupby_col è specificato, colonne: [date_col, groupby_col] + metrics.
 
     Raises:
-        ValueError: If date_col or any metrics/groupby_col missing.
+        ValueError: Se date_col o metriche/groupby_col mancanti.
     """
-    # Validate date column
+    # Verifica che la colonna delle date esista
     if date_col not in df.columns:
-        logger.error(f"Date column '{date_col}' not found.")
-        raise ValueError(f"Missing date column: {date_col}")
+        logger.error(f"Colonna delle date '{date_col}' non trovata.")
+        raise ValueError(f"Colonna delle date mancante: {date_col}")
 
-    # Set default metrics
+    # Imposta le metriche di default se non specificate
     if metrics is None:
         metrics = df.select_dtypes(include='number').columns.tolist()
-        logger.info(f"No metrics specified. Using numeric columns: {metrics}")
+        logger.info(f"Nessuna metrica specificata. Uso colonne numeriche: {metrics}")
     else:
+        # Verifica che tutte le metriche esistano
         missing_metrics = [c for c in metrics if c not in df.columns]
         if missing_metrics:
-            logger.error(f"Metrics columns not found: {missing_metrics}")
-            raise ValueError(f"Missing metrics: {missing_metrics}")
+            logger.error(f"Colonne metriche mancanti: {missing_metrics}")
+            raise ValueError(f"Metriche mancanti: {missing_metrics}")
 
-    # Check groupby column
+    # Controlla che la colonna di raggruppamento esista, se specificata
     if groupby_col and groupby_col not in df.columns:
-        logger.error(f"Group-by column '{groupby_col}' not found.")
-        raise ValueError(f"Missing groupby column: {groupby_col}")
+        logger.error(f"Colonna di raggruppamento '{groupby_col}' non trovata.")
+        raise ValueError(f"Colonna di raggruppamento mancante: {groupby_col}")
 
-    # Ensure datetime dtype
+    # Assicura che la colonna delle date sia di tipo datetime
     if not pd.api.types.is_datetime64_any_dtype(df[date_col]):
         df = df.copy()
         df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
-        logger.info(f"Converted '{date_col}' to datetime.")
+        logger.info(f"Convertita la colonna '{date_col}' in formato datetime.")
 
-    # Drop rows with missing date
+    # Rimuove righe con date mancanti
     missing_dates = df[date_col].isna().sum()
     if missing_dates > 0:
         df = df.dropna(subset=[date_col])
-        logger.warning(f"Dropped {missing_dates} rows with invalid dates.")
+        logger.warning(f"Rimosse {missing_dates} righe con date non valide.")
 
-    # Perform aggregation
+    # Esegue l'aggregazione
     if groupby_col:
         grouped = (
             df
@@ -85,7 +86,7 @@ def aggregate_time(
             .sum()
             .reset_index()
         )
-    logger.info(f"Aggregated data by freq='{freq}'{' and group=' + groupby_col if groupby_col else ''}.")
+    logger.info(f"Dati aggregati con freq='{freq}'{' e gruppo=' + groupby_col if groupby_col else ''}.")
     return grouped
 
 
@@ -98,36 +99,36 @@ def plot_time_series(
     title: Optional[str] = None
 ) -> plt.Figure:
     """
-    Plot time series of a metric, optionally for top N groups.
+    Crea un grafico a serie temporale per una metrica, opzionalmente per i primi N gruppi.
 
     Args:
-        df: Aggregated DataFrame from aggregate_time, with columns [date_col, (group_col?), value_col].
-        date_col: Name of date column.
-        value_col: Name of metric to plot.
-        group_col: Optional column for grouping (e.g., 'ASIN').
-        top_n: If group_col provided, number of top groups to plot based on total value.
-        title: Optional chart title.
+        df: DataFrame aggregato da aggregate_time, con colonne [date_col, (group_col?), value_col].
+        date_col: Nome della colonna delle date.
+        value_col: Nome della metrica da visualizzare.
+        group_col: Colonna opzionale per raggruppare (es. 'ASIN').
+        top_n: Se group_col è specificato, numero di gruppi principali da visualizzare in base al valore totale.
+        title: Titolo opzionale del grafico.
 
     Returns:
-        Matplotlib Figure object.
+        Oggetto Figure di Matplotlib.
 
     Raises:
-        ValueError: If required columns missing or invalid top_n.
+        ValueError: Se le colonne richieste sono mancanti o top_n non è valido.
     """
-    # Validate columns
+    # Verifica che le colonne richieste esistano
     for col in [date_col, value_col] + ([group_col] if group_col else []):
         if col and col not in df.columns:
-            logger.error(f"Column '{col}' not found in DataFrame for plotting.")
-            raise ValueError(f"Missing column: {col}")
+            logger.error(f"Colonna '{col}' non trovata nel DataFrame per il grafico.")
+            raise ValueError(f"Colonna mancante: {col}")
 
-    # Prepare plot
+    # Prepara il grafico
     fig, ax = plt.subplots()
 
     if group_col:
-        # Determine groups to plot
+        # Determina i gruppi principali da visualizzare
         grouped_totals = df.groupby(group_col)[value_col].sum().nlargest(top_n or 10)
         groups_to_plot = grouped_totals.index.tolist()
-        logger.info(f"Plotting top groups: {groups_to_plot}")
+        logger.info(f"Visualizzazione dei gruppi principali: {groups_to_plot}")
 
         for grp in groups_to_plot:
             subset = df[df[group_col] == grp]
@@ -136,8 +137,8 @@ def plot_time_series(
     else:
         ax.plot(df[date_col], df[value_col], label=value_col)
 
-    # Formatting
-    ax.set_xlabel('Date')
+    # Formattazione del grafico
+    ax.set_xlabel('Data')
     ax.set_ylabel(value_col)
     if title:
         ax.set_title(title)
@@ -145,7 +146,7 @@ def plot_time_series(
 
     fig.autofmt_xdate()
     plt.tight_layout()
-    logger.info("Time series plot generated.")
+    logger.info("Grafico a serie temporale generato.")
     return fig
 
 
@@ -155,33 +156,35 @@ def save_plot(
     fmt: str = 'png'
 ) -> None:
     """
-    Save a Matplotlib figure to a file.
+    Salva un grafico Matplotlib in un file.
 
     Args:
-        fig: Figure object to save.
-        path: Output file path (without extension).
-        fmt: File format (e.g., 'png', 'pdf').
+        fig: Oggetto Figure da salvare.
+        path: Percorso del file di output (senza estensione).
+        fmt: Formato del file (es. 'png', 'pdf').
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     full_path = f"{path}.{fmt}"
     fig.savefig(full_path)
-    logger.info(f"Saved plot to {full_path}")
+    logger.info(f"Grafico salvato in {full_path}")
 
 
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(description='Aggregate and plot sales trends over time.')
-    parser.add_argument('input', help='Path to preprocessed CSV file')
-    parser.add_argument('--date_col', default='Date', help='Date column name')
-    parser.add_argument('--freq', default='M', help="Resampling frequency (e.g., 'D','W','M')")
-    parser.add_argument('--metrics', nargs='+', default=['Qty'], help='Metric columns to aggregate')
-    parser.add_argument('--groupby', help='Optional column to group by (e.g., ASIN)')
-    parser.add_argument('--plot_metric', default='Qty', help='Which metric to plot')
-    parser.add_argument('--top_n', type=int, default=10, help='Top N groups to plot')
-    parser.add_argument('--output', help='Path prefix for saving plot')
+    # Parser per gli argomenti della riga di comando
+    parser = argparse.ArgumentParser(description='Aggrega e visualizza le tendenze di vendita nel tempo.')
+    parser.add_argument('input', help='Percorso al file CSV pre-elaborato')
+    parser.add_argument('--date_col', default='Date', help='Nome della colonna delle date')
+    parser.add_argument('--freq', default='M', help="Frequenza di campionamento (es. 'D','W','M')")
+    parser.add_argument('--metrics', nargs='+', default=['Qty'], help='Colonne metriche da aggregare')
+    parser.add_argument('--groupby', help='Colonna opzionale per raggruppare (es. ASIN)')
+    parser.add_argument('--plot_metric', default='Qty', help='Metrica da visualizzare')
+    parser.add_argument('--top_n', type=int, default=10, help='Primi N gruppi da visualizzare')
+    parser.add_argument('--output', help='Prefisso del percorso per salvare il grafico')
     args = parser.parse_args()
 
+    # Carica il file CSV e converte la colonna delle date
     df = pd.read_csv(args.input, parse_dates=[args.date_col])
     df_agg = aggregate_time(df, args.date_col, args.freq, args.metrics, args.groupby)
     if args.output:
@@ -189,11 +192,11 @@ if __name__ == '__main__':
             fig = plot_time_series(
                 df_agg, args.date_col, metric,
                 group_col=args.groupby, top_n=args.top_n,
-                title=f"Trend of {metric}"
+                title=f"Tendenza di {metric}"
             )
             save_plot(fig, f"{args.output}_{metric}")
     else:
-        # Just show one plot
+        # Mostra un solo grafico
         fig = plot_time_series(
             df_agg, args.date_col, args.plot_metric,
             group_col=args.groupby, top_n=args.top_n

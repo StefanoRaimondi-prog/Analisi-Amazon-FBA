@@ -3,7 +3,7 @@ import os
 import logging
 from typing import List, Dict, Union
 
-# Configure logging
+# Configurazione del logging per tracciare le operazioni e gli errori
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
@@ -15,45 +15,46 @@ if not logger.handlers:
 
 def load_raw(path: str, **read_csv_kwargs) -> pd.DataFrame:
     """
-    Load raw CSV data from the specified path.
+    Carica i dati grezzi da un file CSV specificato.
 
     Args:
-        path: Path to the CSV file.
-        **read_csv_kwargs: Additional keyword arguments for pandas.read_csv.
+        path: Percorso del file CSV.
+        **read_csv_kwargs: Argomenti aggiuntivi per pandas.read_csv.
 
     Returns:
-        DataFrame containing the loaded data.
+        DataFrame contenente i dati caricati.
 
     Raises:
-        FileNotFoundError: If the file does not exist.
-        pd.errors.ParserError: If CSV parsing fails.
+        FileNotFoundError: Se il file non esiste.
+        pd.errors.ParserError: Se il parsing del CSV fallisce.
     """
     if not os.path.isfile(path):
-        logger.error(f"File not found: {path}")
-        raise FileNotFoundError(f"The file '{path}' was not found.")
+        logger.error(f"File non trovato: {path}")
+        raise FileNotFoundError(f"Il file '{path}' non è stato trovato.")
     try:
         df = pd.read_csv(path, **read_csv_kwargs)
-        logger.info(f"Loaded raw data from {path} with shape {df.shape}")
+        logger.info(f"Dati grezzi caricati da {path} con dimensioni {df.shape}")
         return df
     except Exception as e:
-        logger.exception(f"Failed to load raw data from {path}")
+        logger.exception(f"Errore durante il caricamento dei dati grezzi da {path}")
         raise
 
 
 def drop_unused_columns(df: pd.DataFrame, cols_to_drop: List[str]) -> pd.DataFrame:
     """
-    Drop columns that are not needed for analysis.
+    Elimina colonne non necessarie per l'analisi.
 
     Args:
-        df: Input DataFrame.
-        cols_to_drop: List of column names to drop.
+        df: DataFrame di input.
+        cols_to_drop: Lista dei nomi delle colonne da eliminare.
 
     Returns:
-        DataFrame without the specified columns.
+        DataFrame senza le colonne specificate.
     """
+    # Verifica quali colonne da eliminare esistono effettivamente nel DataFrame
     existing = [col for col in cols_to_drop if col in df.columns]
     df_dropped = df.drop(columns=existing)
-    logger.info(f"Dropped columns: {existing}")
+    logger.info(f"Colonne eliminate: {existing}")
     return df_dropped
 
 
@@ -63,23 +64,24 @@ def parse_dates(
     date_format: str = None
 ) -> pd.DataFrame:
     """
-    Parse specified columns into datetime.
+    Converte le colonne specificate in formato datetime.
 
     Args:
-        df: Input DataFrame.
-        date_cols: List of columns to convert.
-        date_format: Optional strftime format string.
+        df: DataFrame di input.
+        date_cols: Lista delle colonne da convertire.
+        date_format: Stringa opzionale per specificare il formato datetime.
 
     Returns:
-        DataFrame with parsed datetime columns.
+        DataFrame con le colonne datetime convertite.
     """
     for col in date_cols:
         if col in df.columns:
+            # Conversione della colonna in datetime con gestione degli errori
             df[col] = pd.to_datetime(df[col], format=date_format, errors='coerce')
             n_missing = df[col].isna().sum()
-            logger.info(f"Parsed dates in '{col}'. Failed conversions: {n_missing}")
+            logger.info(f"Date convertite nella colonna '{col}'. Conversioni fallite: {n_missing}")
         else:
-            logger.warning(f"Date column '{col}' not found in DataFrame.")
+            logger.warning(f"Colonna data '{col}' non trovata nel DataFrame.")
     return df
 
 
@@ -89,77 +91,84 @@ def handle_missing(
     default_strategy: str = 'drop'
 ) -> pd.DataFrame:
     """
-    Handle missing values using specified strategies.
+    Gestisce i valori mancanti utilizzando strategie specificate.
 
     Args:
-        df: Input DataFrame.
-        strategy_per_col: Mapping column->strategy. Strategies:
-            - 'drop': remove rows with missing
-            - 'mean', 'median', 'mode': fill numeric/categorical
-            - ('constant', value): fill with a constant
-        default_strategy: Strategy to apply to all missing if strategy_per_col is None.
+        df: DataFrame di input.
+        strategy_per_col: Mappatura colonna->strategia. Strategie supportate:
+            - 'drop': rimuove righe con valori mancanti
+            - 'mean', 'median', 'mode': riempie valori numerici/categoriali
+            - ('constant', value): riempie con un valore costante
+        default_strategy: Strategia da applicare a tutti i valori mancanti se strategy_per_col è None.
 
     Returns:
-        DataFrame with missing values handled.
+        DataFrame con i valori mancanti gestiti.
     """
     df_clean = df.copy()
     if strategy_per_col:
         for col, strat in strategy_per_col.items():
             if col not in df_clean.columns:
-                logger.warning(f"Strategy specified for missing handling but column '{col}' not found.")
+                logger.warning(f"Strategia specificata per la gestione dei mancanti ma colonna '{col}' non trovata.")
                 continue
             if strat == 'drop':
+                # Rimuove righe con valori mancanti nella colonna specificata
                 before = len(df_clean)
                 df_clean = df_clean[df_clean[col].notna()]
                 after = len(df_clean)
-                logger.info(f"Dropped {before-after} rows due to missing in '{col}'.")
+                logger.info(f"Rimosse {before-after} righe con valori mancanti in '{col}'.")
             elif strat == 'mean' and pd.api.types.is_numeric_dtype(df_clean[col]):
+                # Riempie i valori mancanti con la media
                 fill = df_clean[col].mean()
                 df_clean[col].fillna(fill, inplace=True)
-                logger.info(f"Filled missing in '{col}' with mean={fill}.")
+                logger.info(f"Riempiti i mancanti in '{col}' con la media={fill}.")
             elif strat == 'median' and pd.api.types.is_numeric_dtype(df_clean[col]):
+                # Riempie i valori mancanti con la mediana
                 fill = df_clean[col].median()
                 df_clean[col].fillna(fill, inplace=True)
-                logger.info(f"Filled missing in '{col}' with median={fill}.")
+                logger.info(f"Riempiti i mancanti in '{col}' con la mediana={fill}.")
             elif strat == 'mode':
+                # Riempie i valori mancanti con la moda
                 modes = df_clean[col].mode(dropna=True)
                 if not modes.empty:
                     fill = modes[0]
                     df_clean[col].fillna(fill, inplace=True)
-                    logger.info(f"Filled missing in '{col}' with mode='{fill}'.")
+                    logger.info(f"Riempiti i mancanti in '{col}' con la moda='{fill}'.")
             elif isinstance(strat, tuple) and strat[0] == 'constant':
+                # Riempie i valori mancanti con un valore costante
                 fill = strat[1]
                 df_clean[col].fillna(fill, inplace=True)
-                logger.info(f"Filled missing in '{col}' with constant={fill}.")
+                logger.info(f"Riempiti i mancanti in '{col}' con il valore costante={fill}.")
             else:
-                logger.warning(f"Unknown or incompatible strategy '{strat}' for column '{col}'.")
+                logger.warning(f"Strategia sconosciuta o incompatibile '{strat}' per la colonna '{col}'.")
     elif default_strategy == 'drop':
+        # Rimuove tutte le righe con valori mancanti
         before = len(df_clean)
         df_clean = df_clean.dropna()
         after = len(df_clean)
-        logger.info(f"Dropped {before-after} rows with any missing values.")
+        logger.info(f"Rimosse {before-after} righe con valori mancanti.")
     else:
-        logger.warning(f"Default strategy '{default_strategy}' is not implemented.")
+        logger.warning(f"Strategia predefinita '{default_strategy}' non implementata.")
     return df_clean
 
 
 def standardize_text(df: pd.DataFrame, text_cols: List[str]) -> pd.DataFrame:
     """
-    Standardize text columns by stripping whitespace and lowercasing.
+    Standardizza le colonne di testo rimuovendo spazi e convertendo in minuscolo.
 
     Args:
-        df: Input DataFrame.
-        text_cols: List of text column names.
+        df: DataFrame di input.
+        text_cols: Lista dei nomi delle colonne di testo.
 
     Returns:
-        DataFrame with standardized text.
+        DataFrame con le colonne di testo standardizzate.
     """
     for col in text_cols:
         if col in df.columns and pd.api.types.is_object_dtype(df[col]):
+            # Rimuove spazi e converte il testo in minuscolo
             df[col] = df[col].astype(str).str.strip().str.lower()
-            logger.info(f"Standardized text in column '{col}'.")
+            logger.info(f"Testo standardizzato nella colonna '{col}'.")
         else:
-            logger.warning(f"Text column '{col}' not found or not object dtype.")
+            logger.warning(f"Colonna di testo '{col}' non trovata o non di tipo object.")
     return df
 
 
@@ -169,87 +178,15 @@ def save_processed(
     index: bool = False
 ) -> None:
     """
-    Save processed DataFrame to CSV.
+    Salva il DataFrame processato in un file CSV.
 
     Args:
-        df: DataFrame to save.
-        path: Output file path.
-        index: Whether to write row names (index).
+        df: DataFrame da salvare.
+        path: Percorso del file di output.
+        index: Se includere o meno i nomi delle righe (indice).
     """
+    # Crea la directory di destinazione se non esiste
     directory = os.path.dirname(path)
     os.makedirs(directory, exist_ok=True)
     df.to_csv(path, index=index)
-    logger.info(f"Processed data saved to {path}")
-
-
-# ------------------ SPECIFICHE AMAZON ------------------
-def raggruppa_status(status):
-    if status in ['Shipped', 'Shipped - Delivered to Buyer']:
-        return 'Completati'
-    elif status in ['Cancelled', 'Shipped - Rejected by Buyer', 'Shipping']:
-        return 'Annullati'
-    elif status in ['Shipped - Picked Up', 'Shipped - Out for Delivery', 'Pending', 'Pending - Waiting for Pick Up']:
-        return 'In transito'
-    elif status in ['Shipped - Returned to Seller', 'Shipped - Returning to Seller']:
-        return 'Resi'
-    elif status in ['Shipped - Lost in Transit', 'Shipped - Damaged']:
-        return 'Eccezioni'
-    else:
-        return 'Altro'
-
-def raggruppa_categoria(cat):
-    if cat in ['Set', 'kurta']:
-        return 'Kurta / Set'
-    elif cat in ['Western Dress', 'Top']:
-        return 'Western Wear'
-    elif cat in ['Saree', 'Dupatta', 'Ethnic Dress', 'Blouse', 'Bottom']:
-        return 'Traditional Wear'
-    else:
-        return 'Altro'
-
-def pulisci_e_raggruppa_ship_state(df):
-    df['ship-state'] = df['ship-state'].astype(str).str.strip().str.lower()
-    correzioni = {
-        'rajsthan': 'rajasthan', 'rajshthan': 'rajasthan', 'orissa': 'odisha',
-        'pondicherry': 'puducherry', 'new delhi': 'delhi', 'punjab/mohali/zirakpur': 'punjab',
-        'goa ': 'goa', 'nl': 'nagaland', 'apo': 'unknown', 'pb': 'punjab', 'rj': 'rajasthan',
-        'ar': 'arunachal pradesh', 'bihar ': 'bihar', 'sikkim ': 'sikkim', 'mizoram ': 'mizoram',
-        'manipur ': 'manipur', 'nagaland ': 'nagaland', 'arunachal pradesh ': 'arunachal pradesh',
-        'dadra and nagar': 'dadra and nagar haveli', 'daman and diu': 'dadra and nagar haveli',
-        'delhi': 'delhi', 'puducherry': 'puducherry'
-    }
-    df['ship-state'] = df['ship-state'].replace(correzioni)
-    df['ship-state'] = df['ship-state'].str.title()
-
-    region_map = {
-        'Delhi': 'North', 'Punjab': 'North', 'Haryana': 'North', 'Uttarakhand': 'North',
-        'Himachal Pradesh': 'North', 'Jammu & Kashmir': 'North', 'Chandigarh': 'North', 'Ladakh': 'North',
-        'Karnataka': 'South', 'Tamil Nadu': 'South', 'Kerala': 'South', 'Andhra Pradesh': 'South',
-        'Telangana': 'South', 'Puducherry': 'South', 'Maharashtra': 'West', 'Gujarat': 'West',
-        'Goa': 'West', 'Rajasthan': 'West', 'Dadra And Nagar Haveli': 'West', 'West Bengal': 'East',
-        'Odisha': 'East', 'Bihar': 'East', 'Jharkhand': 'East', 'Madhya Pradesh': 'Central',
-        'Chhattisgarh': 'Central', 'Assam': 'North-East', 'Manipur': 'North-East',
-        'Meghalaya': 'North-East', 'Nagaland': 'North-East', 'Mizoram': 'North-East',
-        'Tripura': 'North-East', 'Sikkim': 'North-East', 'Arunachal Pradesh': 'North-East',
-        'Andaman & Nicobar': 'Islands', 'Lakshadweep': 'Islands', 'Unknown': 'Unknown'
-    }
-    df['ship-region'] = df['ship-state'].map(region_map).fillna('Unknown')
-    return df
-
-
-if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Preprocess raw data file.')
-    parser.add_argument('input', help='Path to raw CSV file')
-    parser.add_argument('output', help='Path for saving processed CSV')
-    args = parser.parse_args()
-
-    df_raw = load_raw(args.input)
-    df_clean = drop_unused_columns(df_raw, ['Unnamed: 22'])
-    df_clean = parse_dates(df_clean, ['Date'])
-    df_clean = handle_missing(df_clean)
-    # Example: standardize text for some columns
-    df_clean = standardize_text(df_clean, ['Status', 'Courier Status', 'Fulfilment'])
-    save_processed(df_clean, args.output)
-    logger.info("Preprocessing complete.")
+    logger.info(f"Dati processati salvati in {path}")
