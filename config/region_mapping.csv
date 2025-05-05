@@ -1,15 +1,37 @@
-ship-country,region
-Italy,Europe
-Germany,Europe
-France,Europe
-Spain,Europe
-United Kingdom,Europe
-USA,North America
-Canada,North America
-Mexico,North America
-India,Asia
-Japan,Asia
-China,Asia
-Australia,Oceania
-Brazil,South America
-Argentina,South America
+ship-state,ship-region
+Delhi,North
+Punjab,North
+Haryana,North
+Uttarakhand,North
+Himachal Pradesh,North
+Jammu & Kashmir,North
+Chandigarh,North
+Ladakh,North
+Karnataka,South
+Tamil Nadu,South
+Kerala,South
+Andhra Pradesh,South
+Telangana,South
+Puducherry,South
+Maharashtra,West
+Gujarat,West
+Goa,West
+Rajasthan,West
+Dadra And Nagar Haveli,West
+West Bengal,East
+Odisha,East
+Bihar,East
+Jharkhand,East
+Madhya Pradesh,Central
+Chhattisgarh,Central
+Assam,North-East
+Manipur,North-East
+Meghalaya,North-East
+Nagaland,North-East
+Mizoram,North-East
+Tripura,North-East
+Sikkim,North-East
+Arunachal Pradesh,North-East
+Andaman & Nicobar,Islands
+Lakshadweep,Islands
+Unknown,Unknown
